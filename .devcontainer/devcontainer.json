@@ -1,24 +1,24 @@
 {
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
-	"customizations": {
-		"vscode": {
-			"extensions": [
-				"denoland.vscode-deno",
-				"ms-azuretools.vscode-docker",
-				"bradlc.vscode-tailwindcss"
-			]
-		}
-	},
-	"forwardPorts": [
-		8000
-	],
-	"portsAttributes": {
-		"8000": {
-			"label": "Preview",
-			"onAutoForward": "notify"
-		}
-	},
-	"remoteUser": "vscode"
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "denoland.vscode-deno",
+        "ms-azuretools.vscode-docker",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "forwardPorts": [
+    8000
+  ],
+  "portsAttributes": {
+    "8000": {
+      "label": "Preview",
+      "onAutoForward": "notify"
+    }
+  },
+  "remoteUser": "vscode"
 }
