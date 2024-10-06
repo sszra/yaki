@@ -1,7 +1,6 @@
-import type { ComponentChildren } from "preact";
-
 interface TabProps {
-	children: ComponentChildren;
+	icon: string;
+	focusIcon: string;
 	href: string;
 	partial: string;
 }
@@ -11,9 +10,15 @@ export function TabLink(props: TabProps) {
 		<a
 			href={props.href}
 			f-partial={props.partial}
-			class="flex justify-center items-center group aria-[current]:bg-black size-10 rounded-full"
+			class="flex justify-center items-center group relative"
 		>
-			{props.children}
+			<div class="absolute -top-4 md:top-4 md:-right-4 size-1 group-aria-[current]:bg-black rounded-full">
+			</div>
+			<img class="group-aria-[current]:hidden size-9" src={props.icon} />
+			<img
+				class="hidden group-aria-[current]:block size-9"
+				src={props.focusIcon}
+			/>
 		</a>
 	);
 }
