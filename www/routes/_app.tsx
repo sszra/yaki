@@ -1,6 +1,6 @@
 import { define } from "../utils/core.ts";
 
-export default define.page(({ Component }) => {
+export default define.page(({ Component, state }) => {
 	return (
 		<html>
 			<head>
@@ -9,7 +9,7 @@ export default define.page(({ Component }) => {
 					name="viewport"
 					content="width=device-width, initial-scale=1.0"
 				/>
-				<title>Kuizu</title>
+				<title>{state.title}</title>
 				<link rel="stylesheet" href="/styles.css" />
 			</head>
 			<body>

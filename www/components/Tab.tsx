@@ -12,13 +12,16 @@ export function TabLink(props: TabProps) {
 			f-partial={props.partial}
 			class="flex justify-center items-center group relative"
 		>
-			<div class="absolute -top-4 md:top-4 md:-right-4 size-1 group-aria-[current]:bg-black rounded-full">
+			<div class="flex justify-center items-center group-aria-[current]:bg-slate-100 rounded-full p-2">
+				<img
+					class="group-aria-[current]:hidden size-8"
+					src={props.icon}
+				/>
+				<img
+					class="hidden group-aria-[current]:block size-8"
+					src={props.focusIcon}
+				/>
 			</div>
-			<img class="group-aria-[current]:hidden size-9" src={props.icon} />
-			<img
-				class="hidden group-aria-[current]:block size-9"
-				src={props.focusIcon}
-			/>
 		</a>
 	);
 }
