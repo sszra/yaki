@@ -1,7 +1,8 @@
-import type { User } from "./user.ts";
-import { type JWTPayload, SignJWT } from "jose";
-import { setCookie } from "@std/http/cookie";
+import { retrieveUser, type User } from "./user.ts";
+import { type JWTPayload, jwtVerify, SignJWT } from "jose";
+import { getCookies, setCookie } from "@std/http/cookie";
 import { STATUS_CODE } from "@std/http/status";
+import type { FreshContext } from "fresh";
 
 const EXPIRATION_TIME = {
 	AccessToken: 24 * 60 * 60 * 1000,
@@ -15,7 +16,8 @@ export async function createAccessToken(user: User) {
 		id: user.id,
 	};
 	const expire = Date.now() + EXPIRATION_TIME.AccessToken;
-	const jwt = new SignJWT(payload).setExpirationTime(expire);
+	const jwt = new SignJWT(payload).setProtectedHeader({ alg: "HS256" })
+		.setExpirationTime(expire);
 
 	return {
 		token: await jwt.sign(PRIVATE_KEY),
@@ -30,7 +32,8 @@ export async function createRefreshToken(user: User) {
 		id: user.id,
 	};
 	const expire = Date.now() + EXPIRATION_TIME.RefreshToken;
-	const jwt = new SignJWT(payload).setExpirationTime(expire);
+	const jwt = new SignJWT(payload).setProtectedHeader({ alg: "HS256" })
+		.setExpirationTime(expire);
 
 	return {
 		token: await jwt.sign(PRIVATE_KEY),
@@ -61,6 +64,17 @@ export async function createSession(user: User) {
 	});
 
 	return new Response(null, { headers, status: STATUS_CODE.Found });
+}
+
+export async function resolveSession(ctx: FreshContext) {
+	const cookies = getCookies(ctx.req.headers);
+	const accessToken = cookies["access_token"];
+
+	if (accessToken) {
+		const { payload } = await jwtVerify<Token>(accessToken, PRIVATE_KEY);
+		const user = await retrieveUser(payload.id);
+		return user;
+	}
 }
 
 export interface TokenResult {

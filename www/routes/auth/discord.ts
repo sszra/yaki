@@ -1,4 +1,4 @@
-import { API } from "@discordjs/core";
+import { API, type APIUser } from "@discordjs/core";
 import { define } from "../../utils/core.ts";
 import { REST } from "@discordjs/rest";
 import { createUser, retrieveConnectedUser } from "../../utils/user.ts";
@@ -38,6 +38,7 @@ export const handler = define.handlers({
 		} else {
 			const newUser = await createUser({
 				username: currentDiscordUser.username,
+				avatar: await fetchAvatar(api, currentDiscordUser),
 				connections: {
 					discord: {
 						id: currentDiscordUser.id,
@@ -49,3 +50,13 @@ export const handler = define.handlers({
 		}
 	},
 });
+
+async function fetchAvatar(api: API, user: APIUser) {
+	if (user.avatar) {
+		const avatarUrl = api.rest.cdn.avatar(user.id, user.avatar, {
+			extension: "png",
+		});
+		const response = await fetch(avatarUrl);
+		return await response.blob();
+	}
+}

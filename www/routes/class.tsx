@@ -1,11 +1,21 @@
 import { page } from "fresh";
 import { define } from "../utils/core.ts";
-import type { Class } from "../utils/class.ts";
+import { retrieveClasses } from "../utils/class.ts";
+import { resolveSession } from "../utils/auth.ts";
 
 export const handler = define.handlers({
-	GET(ctx) {
+	async GET(ctx) {
 		ctx.state.title = "Kelas Saya";
-		return page({ classes: [] satisfies Class[] });
+
+		const user = await resolveSession(ctx);
+
+		if (user) {
+			ctx.state.user = user;
+			const classes = await retrieveClasses(user.id);
+			return page({ classes });
+		} else {
+			return ctx.redirect("/");
+		}
 	},
 });
 

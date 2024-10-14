@@ -3,11 +3,14 @@ import { extension } from "@std/media-types/extension";
 import { snowflake } from "./snowflake.ts";
 import { uploadAvatar } from "./imagekit.ts";
 
-const kv = await Deno.openKv();
+export enum UserFlags {
+	Verified = 1 << 0,
+}
 
 export interface User {
 	id: string;
 	username: string;
+	flags?: UserFlags;
 	nickname?: string;
 	avatarUrl?: string;
 	connections: UserConnection;
@@ -19,6 +22,9 @@ export interface UserConnection {
 interface CreateUserOptions extends Omit<User, "id" | "avatarUrl"> {
 	avatar?: Blob;
 }
+
+const kv = await Deno.openKv();
+
 export async function createUser(
 	options: CreateUserOptions,
 ) {
@@ -34,6 +40,7 @@ export async function createUser(
 		const newUser: User = {
 			id,
 			username: options.username,
+			flags: options.flags,
 			connections: options.connections,
 		};
 
@@ -56,7 +63,12 @@ export async function createUser(
 			"users",
 			"byUsername",
 			options.username,
-		], id);
+		], id).set(["users", "byId", id, "classes"], []).set([
+			"users",
+			"byId",
+			id,
+			"friends",
+		], []);
 
 		if (newUser.connections.discord) {
 			atomic.set([
@@ -74,6 +86,11 @@ export async function createUser(
 			throw new Error("Failed to create user");
 		}
 	}
+}
+
+export async function retrieveUser(userId: string) {
+	const { value: user } = await kv.get<User>(["users", "byId", userId]);
+	return user;
 }
 
 type SupportedConnection = "discord";

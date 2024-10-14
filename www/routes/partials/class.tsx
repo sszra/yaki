@@ -2,7 +2,8 @@ import { Partial } from "fresh/runtime";
 import { define } from "../../utils/core.ts";
 import { page, type RouteConfig } from "fresh";
 import { Title } from "../../components/Title.tsx";
-import type { Class } from "../../utils/class.ts";
+import { retrieveClasses } from "../../utils/class.ts";
+import { resolveSession } from "../../utils/auth.ts";
 
 export const config: RouteConfig = {
 	skipAppWrapper: true,
@@ -10,9 +11,15 @@ export const config: RouteConfig = {
 };
 
 export const handler = define.handlers({
-	GET(ctx) {
-		ctx.state.title = "Kelas Saya";
-		return page({ classes: [] satisfies Class[] });
+	async GET(ctx) {
+		const user = await resolveSession(ctx);
+
+		if (user) {
+			const classes = await retrieveClasses(user.id);
+			return page({ classes });
+		} else {
+			return ctx.redirect("/");
+		}
 	},
 });
 
