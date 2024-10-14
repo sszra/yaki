@@ -10,20 +10,20 @@ export interface User {
 	username: string;
 	nickname?: string;
 	avatarUrl?: string;
-	connection: UserConnection;
+	connections: UserConnection;
 }
 export interface UserConnection {
 	discord?: Pick<APIUser, "username" | "id">;
 }
 
 interface CreateUserOptions extends Omit<User, "id" | "avatarUrl"> {
-	avatar: Blob;
+	avatar?: Blob;
 }
 export async function createUser(
-	{ username, avatar, connection }: CreateUserOptions,
+	options: CreateUserOptions,
 ) {
 	const usernameAvailability = await kv.atomic().check({
-		key: ["users", "byUsername", username],
+		key: ["users", "byUsername", options.username],
 		versionstamp: null,
 	}).commit();
 
@@ -33,18 +33,18 @@ export async function createUser(
 		const id = snowflake();
 		const newUser: User = {
 			id,
-			username,
-			connection,
+			username: options.username,
+			connections: options.connections,
 		};
 
-		if (avatar) {
-			const avatarExtension = extension(avatar.type)!;
+		if (options.avatar) {
+			const avatarExtension = extension(options.avatar.type)!;
 			const supportedExtensions = ["jpeg", "png"];
 
 			if (supportedExtensions.includes(avatarExtension)) {
 				newUser.avatarUrl = await uploadAvatar(
 					id,
-					await avatar.bytes(),
+					await options.avatar.bytes(),
 					avatarExtension,
 				);
 			} else {
@@ -55,15 +55,15 @@ export async function createUser(
 		const atomic = kv.atomic().set(["users", "byId", id], newUser).set([
 			"users",
 			"byUsername",
-			username,
+			options.username,
 		], id);
 
-		if (newUser.connection.discord) {
+		if (newUser.connections.discord) {
 			atomic.set([
 				"users",
 				"byConnection",
 				"discord",
-				newUser.connection.discord.id,
+				newUser.connections.discord.id,
 			], id);
 		}
 
@@ -73,5 +73,23 @@ export async function createUser(
 		} else {
 			throw new Error("Failed to create user");
 		}
+	}
+}
+
+type SupportedConnection = "discord";
+export async function retrieveConnectedUser(
+	type: SupportedConnection,
+	id: string,
+) {
+	const { value: userId } = await kv.get<string>([
+		"users",
+		"byConnection",
+		type,
+		id,
+	]);
+
+	if (userId) {
+		const { value: user } = await kv.get<User>(["users", "byId", userId]);
+		return user;
 	}
 }

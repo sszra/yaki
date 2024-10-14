@@ -28,9 +28,11 @@
 		"@preact/signals": "npm:@preact/signals@^1.3.0",
 		"@sapphire/snowflake": "npm:@sapphire/snowflake@^3.5.3",
 		"@std/encoding": "jsr:@std/encoding@^1.0.5",
+		"@std/http": "jsr:@std/http@^1.0.8",
 		"@std/media-types": "jsr:@std/media-types@^1.0.3",
 		"fresh": "jsr:@fresh/core@^2.0.0-alpha.21",
 		"imagekit": "npm:imagekit@^5.2.0",
+		"jose": "https://deno.land/x/jose@v5.9.4/index.ts",
 		"preact": "npm:preact@^10.24.1",
 		"tailwindcss": "npm:tailwindcss@3.4.3",
 		"tailwindcss/plugin": "npm:tailwindcss@3.4.3/plugin.js"
