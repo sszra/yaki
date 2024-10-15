@@ -71,10 +71,30 @@ export async function resolveSession(ctx: FreshContext) {
 	const accessToken = cookies["access_token"];
 
 	if (accessToken) {
-		const { payload } = await jwtVerify<Token>(accessToken, PRIVATE_KEY);
-		const user = await retrieveUser(payload.id);
-		return user;
+		const payload = await resolveToken(accessToken);
+
+		if (payload.type === "access_token") {
+			const user = await retrieveUser(payload.id);
+			return user;
+		}
 	}
+}
+
+export async function refreshToken(refreshToken: string) {
+	const payload = await resolveToken(refreshToken);
+
+	if (payload.type === "refresh_token") {
+		const user = await retrieveUser(payload.id);
+
+		if (user) {
+			return await createAccessToken(user);
+		}
+	}
+}
+
+export async function resolveToken(token: string) {
+	const { payload } = await jwtVerify<Token>(token, PRIVATE_KEY);
+	return payload;
 }
 
 export interface TokenResult {
