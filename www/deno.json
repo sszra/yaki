@@ -35,6 +35,7 @@
 		"jose": "https://deno.land/x/jose@v5.9.4/index.ts",
 		"preact": "npm:preact@^10.24.1",
 		"tailwindcss": "npm:tailwindcss@3.4.3",
+		"tailwindcss/defaultTheme": "npm:tailwindcss@3.4.3/defaultTheme.js",
 		"tailwindcss/plugin": "npm:tailwindcss@3.4.3/plugin.js"
 	},
 	"compilerOptions": {

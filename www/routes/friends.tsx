@@ -14,7 +14,7 @@ export const handler = define.handlers({
 			const friends = await retrieveFriends(user.id);
 			return page({ friends });
 		} else {
-			return ctx.redirect("/");
+			return ctx.redirect("/refresh_token");
 		}
 	},
 });

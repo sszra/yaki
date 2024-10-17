@@ -90,7 +90,12 @@ export async function createUser(
 
 export async function retrieveUser(userId: string) {
 	const { value: user } = await kv.get<User>(["users", "byId", userId]);
-	return user;
+
+	if (user) {
+		return user;
+	} else {
+		throw new Error("Unknown User");
+	}
 }
 
 type SupportedConnection = "discord";
