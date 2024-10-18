@@ -4,7 +4,7 @@ interface ClassProps {
 	data: ResolvedClass;
 }
 
-export default function Class({ data }: ClassProps) {
+export function Class({ data }: ClassProps) {
 	const { homeroomTeacher } = data;
 
 	return (

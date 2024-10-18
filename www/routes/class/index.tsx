@@ -1,22 +1,20 @@
 import { page } from "fresh";
 import { define } from "../../utils/core.ts";
 import { retrieveClassesFor } from "../../utils/class.ts";
-import { resolveSession } from "../../utils/auth.ts";
-import Class from "../../components/Class.tsx";
+import { authMiddleware } from "../../utils/auth.ts";
+import { Class } from "../../components/Class.tsx";
+
+export const middleware = authMiddleware;
 
 export const handler = define.handlers({
 	async GET(ctx) {
 		ctx.state.title = "Kelas Saya";
 
-		const user = await resolveSession(ctx);
-
-		if (user) {
-			ctx.state.user = user;
-			const fetchedClasses = await retrieveClassesFor(user.id, true);
-			return page({ fetchedClasses });
-		} else {
-			return ctx.redirect("/refresh_token");
-		}
+		const fetchedClasses = await retrieveClassesFor(
+			ctx.state.user.id,
+			true,
+		);
+		return page({ fetchedClasses });
 	},
 });
 

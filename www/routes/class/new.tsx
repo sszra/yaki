@@ -1,5 +1,4 @@
 import { page, type RouteConfig } from "fresh";
-import { resolveSession } from "../../utils/auth.ts";
 import { define } from "../../utils/core.ts";
 import { createClass } from "../../utils/class.ts";
 
@@ -8,31 +7,19 @@ export const config: RouteConfig = {
 };
 
 export const handler = define.handlers({
-	async GET(ctx) {
-		const user = await resolveSession(ctx);
-
-		if (user) {
-			return page({ error: { name: null } });
-		} else {
-			return ctx.redirect("/refresh_token");
-		}
+	GET(_ctx) {
+		return page({ error: { name: null } });
 	},
 	async POST(ctx) {
-		const user = await resolveSession(ctx);
+		const data = await ctx.req.formData();
 
-		if (user) {
-			const data = await ctx.req.formData();
+		const name = data.get("name") as string;
 
-			const name = data.get("name") as string;
-
-			if (!name) {
-				return page({ error: { name: "This is required field" } });
-			} else {
-				const newClass = await createClass(name, user);
-				return ctx.redirect(`/class/${newClass.id}`);
-			}
+		if (!name) {
+			return page({ error: { name: "This is required field" } });
 		} else {
-			return ctx.redirect("/refresh_token");
+			const newClass = await createClass(name, ctx.state.user);
+			return ctx.redirect(`/class/${newClass.id}`);
 		}
 	},
 });

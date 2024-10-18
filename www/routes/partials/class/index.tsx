@@ -3,8 +3,7 @@ import { define } from "../../../utils/core.ts";
 import { page, type RouteConfig } from "fresh";
 import { Title } from "../../../components/Title.tsx";
 import { retrieveClassesFor } from "../../../utils/class.ts";
-import { resolveSession } from "../../../utils/auth.ts";
-import Class from "../../../components/Class.tsx";
+import { Class } from "../../../components/Class.tsx";
 
 export const config: RouteConfig = {
 	skipAppWrapper: true,
@@ -13,15 +12,11 @@ export const config: RouteConfig = {
 
 export const handler = define.handlers({
 	async GET(ctx) {
-		const user = await resolveSession(ctx);
-
-		if (user) {
-			ctx.state.user = user;
-			const fetchedClasses = await retrieveClassesFor(user.id, true);
-			return page({ fetchedClasses });
-		} else {
-			return ctx.redirect("/");
-		}
+		const fetchedClasses = await retrieveClassesFor(
+			ctx.state.user.id,
+			true,
+		);
+		return page({ fetchedClasses });
 	},
 });
 

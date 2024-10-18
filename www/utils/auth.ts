@@ -3,12 +3,24 @@ import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 import { getCookies, setCookie } from "@std/http/cookie";
 import { STATUS_CODE } from "@std/http/status";
 import type { FreshContext } from "fresh";
+import { define } from "./core.ts";
 
 const EXPIRATION_TIME = {
 	AccessToken: 24 * 60 * 60 * 1000,
 	RefreshToken: 7 * 24 * 60 * 60 * 1000,
 };
 const PRIVATE_KEY = new TextEncoder().encode(Deno.env.get("JWT_PRIVATE_KEY")!);
+
+export const authMiddleware = define.middleware(async (ctx) => {
+	const user = await resolveSession(ctx);
+
+	if (user) {
+		ctx.state.user = user;
+		return ctx.next();
+	} else {
+		return ctx.redirect("/refresh_token");
+	}
+});
 
 export async function createAccessToken(user: User) {
 	const payload: Token & JWTPayload = {

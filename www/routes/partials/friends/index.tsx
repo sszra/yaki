@@ -1,7 +1,7 @@
 import { Partial } from "fresh/runtime";
-import { define } from "../../utils/core.ts";
+import { define } from "../../../utils/core.ts";
 import type { RouteConfig } from "fresh";
-import { Title } from "../../components/Title.tsx";
+import { Title } from "../../../components/Title.tsx";
 
 export const config: RouteConfig = {
 	skipAppWrapper: true,
