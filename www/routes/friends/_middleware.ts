@@ -1,3 +1,1 @@
-import { authMiddleware } from "../../utils/auth.ts";
-
-export const handler = authMiddleware;
+export { authMiddleware as handler } from "../../utils/auth.ts";
