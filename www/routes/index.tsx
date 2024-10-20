@@ -22,12 +22,12 @@ export const handler = define.handlers({
 export default define.page<typeof handler>((_ctx) => {
 	return (
 		<div class="flex justify-center items-center w-dvw h-dvh">
-			<div class="flex flex-col gap-2">
+			<div class="flex flex-col justify-center gap-2">
 				<p class="font-semibold text-2xl">Masuk ke akun Kamu!</p>
 				<div>
 					<LoginAuth
 						icon="/icons/discord.svg"
-						platformName="discord"
+						platformName="Discord"
 						path="/login/discord"
 					/>
 				</div>
