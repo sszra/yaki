@@ -13,6 +13,7 @@ export const handler = define.handlers({
 		if (user) {
 			return ctx.redirect("/class");
 		} else {
+			ctx.state.title = "Login";
 			return page();
 		}
 	},

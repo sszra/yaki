@@ -9,7 +9,7 @@ export default define.page(({ Component, state }) => {
 					name="viewport"
 					content="width=device-width, initial-scale=1.0"
 				/>
-				<title>{state.title}</title>
+				<title>{state.title ? `${state.title} - Yaki` : "Yaki"}</title>
 				<link rel="stylesheet" href="/styles.css" />
 			</head>
 			<body>

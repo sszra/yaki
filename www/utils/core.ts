@@ -2,7 +2,7 @@ import { createDefine } from "fresh";
 import type { User } from "./user.ts";
 
 export interface State {
-	title: string;
+	title?: string;
 	user: User;
 }
 
