@@ -3,11 +3,12 @@ import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 import { getCookies, setCookie } from "@std/http/cookie";
 import { STATUS_CODE } from "@std/http/status";
 import type { FreshContext } from "fresh";
-import { define } from "./core.ts";
+import { define, kv } from "./core.ts";
+import { snowflake } from "./snowflake.ts";
 
 const EXPIRATION_TIME = {
-	AccessToken: 24 * 60 * 60 * 1000,
-	RefreshToken: 7 * 24 * 60 * 60 * 1000,
+	AccessToken: 60 * 60 * 1000,
+	RefreshToken: 24 * 60 * 60 * 1000,
 };
 const PRIVATE_KEY = new TextEncoder().encode(Deno.env.get("JWT_PRIVATE_KEY")!);
 
@@ -18,14 +19,13 @@ export const authMiddleware = define.middleware(async (ctx) => {
 		ctx.state.user = user;
 		return ctx.next();
 	} else {
-		return ctx.redirect("/refresh_token");
+		return ctx.redirect("/auth/refresh_token");
 	}
 });
 
 export async function createAccessToken(user: User) {
-	const payload: Token & JWTPayload = {
-		type: "access_token",
-		id: user.id,
+	const payload: AccessToken & JWTPayload = {
+		userId: user.id,
 	};
 	const expire = Date.now() + EXPIRATION_TIME.AccessToken;
 	const jwt = new SignJWT(payload).setProtectedHeader({ alg: "HS256" })
@@ -33,49 +33,71 @@ export async function createAccessToken(user: User) {
 
 	return {
 		token: await jwt.sign(PRIVATE_KEY),
-		token_type: payload.type,
+		tokenType: "access_token",
 		expire,
-	} satisfies TokenResult;
+	} satisfies TokenResult<"access_token">;
 }
 
-export async function createRefreshToken(user: User) {
-	const payload: Token & JWTPayload = {
-		type: "refresh_token",
-		id: user.id,
+export async function createRefreshToken(
+	user: User,
+	oldData?: RefreshTokenValidationResult,
+) {
+	const atomic = kv.atomic();
+
+	if (oldData) {
+		atomic.delete(["refresh_tokens", oldData.sessionId]);
+	}
+
+	const sessionId = snowflake();
+	const payload: RefreshToken & JWTPayload = {
+		sessionId,
 	};
 	const expire = Date.now() + EXPIRATION_TIME.RefreshToken;
 	const jwt = new SignJWT(payload).setProtectedHeader({ alg: "HS256" })
-		.setExpirationTime(expire);
+		.setExpirationTime(oldData?.expire ?? expire);
+
+	await atomic.set(["refresh_tokens", sessionId], user.id).commit();
 
 	return {
 		token: await jwt.sign(PRIVATE_KEY),
-		token_type: payload.type,
+		tokenType: "refresh_token",
 		expire,
-	} satisfies TokenResult;
+	} satisfies TokenResult<"refresh_token">;
+}
+
+async function validateRefreshToken(
+	token: string,
+): Promise<RefreshTokenValidationResult> {
+	const { payload } = await jwtVerify<RefreshToken>(token, PRIVATE_KEY);
+	const { value: userId } = await kv.get<string>([
+		"refresh_tokens",
+		payload.sessionId,
+	]);
+
+	const unknownUserError = new Error("Unknown User");
+
+	if (userId) {
+		const user = await retrieveUser(userId);
+
+		if (user) {
+			return {
+				sessionId: payload.sessionId,
+				expire: payload.exp!,
+				user,
+			};
+		} else {
+			throw unknownUserError;
+		}
+	} else {
+		throw unknownUserError;
+	}
 }
 
 export async function createSession(user: User) {
-	const headers = new Headers({
-		location: "/",
-	});
-
 	const accessToken = await createAccessToken(user);
 	const refreshToken = await createRefreshToken(user);
 
-	setCookie(headers, {
-		name: "access_token",
-		value: accessToken.token,
-		expires: accessToken.expire,
-		path: "/",
-	});
-	setCookie(headers, {
-		name: "refresh_token",
-		value: refreshToken.token,
-		expires: refreshToken.expire,
-		path: "/refresh_token",
-	});
-
-	return new Response(null, { headers, status: STATUS_CODE.Found });
+	return setupSession(accessToken, refreshToken);
 }
 
 export async function resolveSession(ctx: FreshContext) {
@@ -83,39 +105,73 @@ export async function resolveSession(ctx: FreshContext) {
 	const accessToken = cookies["access_token"];
 
 	if (accessToken) {
-		const payload = await resolveToken(accessToken);
+		const payload = await resolveToken<AccessToken>(accessToken);
 
-		if (payload.type === "access_token") {
-			const user = await retrieveUser(payload.id);
-			return user;
-		}
+		const user = await retrieveUser(payload.userId);
+		return user;
 	}
 }
 
-export async function refreshToken(refreshToken: string) {
-	const payload = await resolveToken(refreshToken);
+export async function refreshSession(token: string) {
+	const parsedToken = await validateRefreshToken(token);
 
-	if (payload.type === "refresh_token") {
-		const user = await retrieveUser(payload.id);
+	const accessToken = await createAccessToken(parsedToken.user);
+	const refreshToken = await createRefreshToken(
+		parsedToken.user,
+		parsedToken,
+	);
 
-		if (user) {
-			return await createAccessToken(user);
-		}
-	}
+	return setupSession(accessToken, refreshToken);
 }
 
-export async function resolveToken(token: string) {
-	const { payload } = await jwtVerify<Token>(token, PRIVATE_KEY);
+export function setupSession(
+	accessToken: TokenResult<"access_token">,
+	refreshToken: TokenResult<"refresh_token">,
+) {
+	const headers = new Headers({
+		"location": "/",
+	});
+
+	setCookie(headers, {
+		name: "access_token",
+		value: accessToken.token,
+		expires: accessToken.expire,
+		path: "/",
+		secure: true,
+		httpOnly: true,
+	});
+	setCookie(headers, {
+		name: "refresh_token",
+		value: refreshToken.token,
+		expires: refreshToken.expire,
+		path: "/auth/refresh_token",
+		secure: true,
+		httpOnly: true,
+	});
+
+	return new Response(null, { headers, status: STATUS_CODE.Found });
+}
+
+export async function resolveToken<T extends Token>(token: string) {
+	const { payload } = await jwtVerify<T>(token, PRIVATE_KEY);
 	return payload;
 }
 
-export interface TokenResult {
+type TokenType = "access_token" | "refresh_token";
+export interface TokenResult<T extends TokenType> {
 	token: string;
-	token_type: TokenType;
+	tokenType: T;
 	expire: number;
 }
 
-interface Token extends Pick<User, "id"> {
-	type: TokenType;
+interface AccessToken {
+	userId: string;
 }
-type TokenType = "access_token" | "refresh_token";
+interface RefreshToken {
+	sessionId: string;
+}
+export type Token = AccessToken | RefreshToken;
+interface RefreshTokenValidationResult extends RefreshToken {
+	expire: number;
+	user: User;
+}
