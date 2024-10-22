@@ -4,7 +4,7 @@ import { TabLink } from "../components/Tab.tsx";
 import { Title } from "../components/Title.tsx";
 
 export default define.page(({ Component, state }) => {
-	const { title, user } = state;
+	const { user } = state;
 
 	return (
 		<div
@@ -27,7 +27,7 @@ export default define.page(({ Component, state }) => {
 			</div>
 			<div class="flex flex-col grow p-4 space-y-3">
 				<div class="flex justify-between items-center w-full">
-					<Title text={title} />
+					<Title text="Kelas Saya" />
 					<div class="bg-slate-100 rounded-full size-10 overflow-hidden">
 						<img class="pointer-events-none" src={user.avatarUrl} />
 					</div>

@@ -8,7 +8,7 @@ export const middleware = authMiddleware;
 
 export const handler = define.handlers({
 	async GET(ctx) {
-		ctx.state.title = "Kelas Saya";
+		ctx.state.title = "Teman Saya";
 
 		const fetchedClasses = await retrieveClassesFor(
 			ctx.state.user.id,

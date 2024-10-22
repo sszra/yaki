@@ -24,6 +24,7 @@
 	"imports": {
 		"@discordjs/core": "npm:@discordjs/core@^2.0.0/http-only",
 		"@discordjs/rest": "npm:@discordjs/rest@^2.4.0",
+		"@felix/bcrypt": "jsr:@felix/bcrypt@^1.0.5",
 		"@fresh/plugin-tailwind": "jsr:@fresh/plugin-tailwind@^0.0.1-alpha.7",
 		"@preact/signals": "npm:@preact/signals@^1.3.0",
 		"@sapphire/snowflake": "npm:@sapphire/snowflake@^3.5.3",

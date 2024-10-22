@@ -5,7 +5,7 @@ import { STATUS_CODE } from "@std/http/status";
 export const handler = define.handlers({
 	GET(_ctx) {
 		const headers = new Headers({
-			location: "/",
+			location: "/login",
 		});
 
 		deleteCookie(headers, "access_token", { path: "/" });

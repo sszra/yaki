@@ -2,6 +2,11 @@ import type { APIUser } from "@discordjs/core";
 import { extension } from "@std/media-types/extension";
 import { snowflake } from "./snowflake.ts";
 import { uploadAvatar } from "./imagekit.ts";
+import { hash } from "@felix/bcrypt";
+
+const FORMATTING_PATTERN = {
+	Username: /^[a-z0-9]{3,20}$/,
+};
 
 export enum UserFlags {
 	Verified = 1 << 0,
@@ -13,13 +18,14 @@ export interface User {
 	flags?: UserFlags;
 	nickname?: string;
 	avatarUrl?: string;
-	connections: UserConnection;
+	connections?: UserConnection;
 }
 export interface UserConnection {
 	discord?: Pick<APIUser, "username" | "id">;
 }
 
 interface CreateUserOptions extends Omit<User, "id" | "avatarUrl"> {
+	password: string;
 	avatar?: Blob;
 }
 
@@ -28,63 +34,74 @@ const kv = await Deno.openKv();
 export async function createUser(
 	options: CreateUserOptions,
 ) {
-	const usernameAvailability = await kv.atomic().check({
-		key: ["users", "byUsername", options.username],
-		versionstamp: null,
-	}).commit();
+	if (options.username.match(FORMATTING_PATTERN.Username)) {
+		const usernameAvailability = await kv.atomic().check({
+			key: ["users", "byUsername", options.username],
+			versionstamp: null,
+		}).commit();
 
-	if (!usernameAvailability.ok) {
-		throw new Error("Username isn't available");
-	} else {
-		const id = snowflake();
-		const newUser: User = {
-			id,
-			username: options.username,
-			flags: options.flags,
-			connections: options.connections,
-		};
+		if (options.password.length < 8) {
+			throw new Error("Panjang karakter sandi minimal 8 karakter");
+		}
 
-		if (options.avatar) {
-			const avatarExtension = extension(options.avatar.type)!;
-			const supportedExtensions = ["jpeg", "png"];
+		if (!usernameAvailability.ok) {
+			throw new Error("Username isn't available");
+		} else {
+			const id = snowflake();
+			const newUser: User = {
+				id,
+				username: options.username,
+				flags: options.flags,
+				connections: options.connections,
+			};
 
-			if (supportedExtensions.includes(avatarExtension)) {
-				newUser.avatarUrl = await uploadAvatar(
-					id,
-					await options.avatar.bytes(),
-					avatarExtension,
-				);
+			if (options.avatar) {
+				const avatarExtension = extension(options.avatar.type)!;
+				const supportedExtensions = ["jpeg", "png"];
+
+				if (supportedExtensions.includes(avatarExtension)) {
+					newUser.avatarUrl = await uploadAvatar(
+						id,
+						await options.avatar.bytes(),
+						avatarExtension,
+					);
+				} else {
+					throw new Error("Unsupported avatar format");
+				}
+			}
+
+			const atomic = kv.atomic().set(["users", "byId", id], newUser).set([
+				"users",
+				"byUsername",
+				options.username,
+			], id).set(["users", "byId", id, "classes"], []).set([
+				"users",
+				"byId",
+				id,
+				"friends",
+			], []).set(
+				["users", "byId", id, "password"],
+				await hash(options.password),
+			);
+
+			if (newUser.connections?.discord) {
+				atomic.set([
+					"users",
+					"byConnection",
+					"discord",
+					newUser.connections.discord.id,
+				], id);
+			}
+
+			const commit = await atomic.commit();
+			if (commit.ok) {
+				return newUser;
 			} else {
-				throw new Error("Unsupported avatar format");
+				throw new Error("Failed to create user");
 			}
 		}
-
-		const atomic = kv.atomic().set(["users", "byId", id], newUser).set([
-			"users",
-			"byUsername",
-			options.username,
-		], id).set(["users", "byId", id, "classes"], []).set([
-			"users",
-			"byId",
-			id,
-			"friends",
-		], []);
-
-		if (newUser.connections.discord) {
-			atomic.set([
-				"users",
-				"byConnection",
-				"discord",
-				newUser.connections.discord.id,
-			], id);
-		}
-
-		const commit = await atomic.commit();
-		if (commit.ok) {
-			return newUser;
-		} else {
-			throw new Error("Failed to create user");
-		}
+	} else {
+		throw new Error("Username hanya bisa mengandung huruf kecil dan angka");
 	}
 }
 
@@ -95,6 +112,20 @@ export async function retrieveUser(userId: string) {
 		return user;
 	} else {
 		throw new Error("Unknown User");
+	}
+}
+
+export async function searchUser(username: string) {
+	const { value: userId } = await kv.get<string>([
+		"users",
+		"byUsername",
+		username,
+	]);
+
+	if (userId) {
+		return await retrieveUser(userId);
+	} else {
+		throw new Error("This user doesn't exist");
 	}
 }
 
