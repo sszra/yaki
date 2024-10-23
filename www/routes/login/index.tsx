@@ -44,7 +44,7 @@ export const handler = define.handlers({
 				if (isMatch) {
 					return await createSession(user);
 				} else {
-					throw new Error("Username or Password isn't valid");
+					throw new Error("Username atau Kata Sandi salah");
 				}
 			} catch (err) {
 				return page({

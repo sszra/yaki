@@ -45,7 +45,7 @@ export async function createUser(
 		}
 
 		if (!usernameAvailability.ok) {
-			throw new Error("Username isn't available");
+			throw new Error("Username ini tidak tersedia");
 		} else {
 			const id = snowflake();
 			const newUser: User = {
@@ -97,7 +97,7 @@ export async function createUser(
 			if (commit.ok) {
 				return newUser;
 			} else {
-				throw new Error("Failed to create user");
+				throw new Error("Gagal membuat akun");
 			}
 		}
 	} else {

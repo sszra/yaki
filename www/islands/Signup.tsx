@@ -28,7 +28,7 @@ export function Signup(props: SignupProps) {
 			</div>
 			<div class="flex flex-col">
 				<label class="font-bold" for="password">
-					Password
+					Kata Sandi
 				</label>
 				<input
 					class="bg-slate-200 rounded-full px-3 py-2 placeholder:text-slate-500 outline-none"
