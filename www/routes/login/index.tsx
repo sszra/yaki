@@ -73,7 +73,7 @@ export default define.page<typeof handler>(({ data }) => {
 			<Partial name="switch">
 				<p class="text-sm font-semibold">
 					Belum punya akun?{" "}
-					<a href="/signup" f-partial="/partials/signup">
+					<a href="/signup">
 						<span class="text-purple-500">Signup</span>
 					</a>
 				</p>

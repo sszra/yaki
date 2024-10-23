@@ -12,6 +12,7 @@ export const config: RouteConfig = {
 
 export const handler = define.handlers({
 	async GET(ctx) {
+		console.log("partial signup");
 		const user = await resolveSession(ctx);
 
 		if (user) {
