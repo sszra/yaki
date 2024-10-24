@@ -19,7 +19,7 @@ export const handler = define.handlers({
 			return page({ error: { name: "This is required field" } });
 		} else {
 			const newClass = await createClass(name, ctx.state.user);
-			return ctx.redirect(`/class/${newClass.id}`);
+			return ctx.redirect(`/class/${newClass.id}/tasks`);
 		}
 	},
 });
