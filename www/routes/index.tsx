@@ -10,7 +10,7 @@ export const config: RouteConfig = {
 export const handler = define.handlers({
 	async GET(ctx) {
 		const user = await resolveSession(ctx);
-		return ctx.redirect(user ? "/class" : "/login")
+		return ctx.redirect(user ? "/class" : "/login");
 	},
 });
 
