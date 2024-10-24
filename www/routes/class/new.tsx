@@ -18,8 +18,8 @@ export const handler = define.handlers({
 		if (!name) {
 			return page({ error: { name: "This is required field" } });
 		} else {
-			const newClass = await createClass(name, ctx.state.user);
-			return ctx.redirect(`/class/${newClass.id}/tasks`);
+			await createClass(name, ctx.state.user);
+			return ctx.redirect("/class");
 		}
 	},
 });
@@ -46,7 +46,7 @@ export default define.page<typeof handler>(({ data }) => {
 							/>
 							{error.name && (
 								<p class="text-red-400">
-									This field is required
+									{error.name}
 								</p>
 							)}
 						</div>

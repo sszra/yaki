@@ -9,8 +9,12 @@ export const config: RouteConfig = {
 
 export const handler = define.handlers({
 	async GET(ctx) {
-		const user = await resolveSession(ctx);
-		return ctx.redirect(user ? "/class" : "/login");
+		try {
+			await resolveSession(ctx);
+			return ctx.redirect("/class");
+		} catch (_err) {
+			return ctx.redirect("/auth/refresh_token");
+		}
 	},
 });
 

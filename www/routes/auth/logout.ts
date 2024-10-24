@@ -9,7 +9,7 @@ export const handler = define.handlers({
 		});
 
 		deleteCookie(headers, "access_token", { path: "/" });
-		deleteCookie(headers, "refresh_token", { path: "/refresh_token" });
+		deleteCookie(headers, "refresh_token", { path: "/auth/refresh_token" });
 
 		return new Response(null, { headers, status: STATUS_CODE.Found });
 	},

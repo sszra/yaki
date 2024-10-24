@@ -12,16 +12,33 @@ const EXPIRATION_TIME = {
 };
 const PRIVATE_KEY = new TextEncoder().encode(Deno.env.get("JWT_PRIVATE_KEY")!);
 
-export const authMiddleware = define.middleware(async (ctx) => {
-	const user = await resolveSession(ctx);
-
-	if (user) {
-		ctx.state.user = user;
+export const _authMiddleware = define.middleware(async (ctx) => {
+	try {
+		ctx.state.user = await resolveSession(ctx);
 		return ctx.next();
-	} else {
+	} catch (_err) {
 		return ctx.redirect("/auth/refresh_token");
 	}
 });
+
+export function authMiddleware(requireAuth: boolean) {
+	return define.middleware(async (ctx) => {
+		try {
+			const currentUser = await resolveSession(ctx);
+
+			if (requireAuth) {
+				ctx.state.user = currentUser;
+				return ctx.next();
+			} else {
+				return ctx.redirect("/class");
+			}
+		} catch (_err) {
+			return requireAuth
+				? ctx.redirect("/auth/refresh_token")
+				: ctx.next();
+		}
+	});
+}
 
 export async function createAccessToken(user: User) {
 	const payload: AccessToken & JWTPayload = {
@@ -106,9 +123,9 @@ export async function resolveSession(ctx: FreshContext) {
 
 	if (accessToken) {
 		const payload = await resolveToken<AccessToken>(accessToken);
-
-		const user = await retrieveUser(payload.userId);
-		return user;
+		return await retrieveUser(payload.userId);
+	} else {
+		throw new Error("Unknown Session.");
 	}
 }
 

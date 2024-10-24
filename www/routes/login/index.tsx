@@ -12,21 +12,18 @@ export const config: RouteConfig = {
 
 export const handler = define.handlers({
 	async GET(ctx) {
-		ctx.state.title = "Login";
-		const user = await resolveSession(ctx);
-
-		if (user) {
+		try {
+			await resolveSession(ctx);
 			return ctx.redirect("/class");
-		} else {
+		} catch (_err) {
 			return page();
 		}
 	},
 	async POST(ctx) {
-		const user = await resolveSession(ctx);
-
-		if (user) {
+		try {
+			await resolveSession(ctx);
 			return ctx.redirect("/class");
-		} else {
+		} catch (_err) {
 			const data = await ctx.req.formData();
 
 			const username = data.get("username") as string;
