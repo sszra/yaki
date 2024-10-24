@@ -11,6 +11,20 @@ export interface ResolvedClass extends Omit<Class, "homeroomTeacherId"> {
 	homeroomTeacher: User;
 }
 
+export interface Task {
+	id: string;
+	title: string;
+	description?: string;
+	dueDate?: number;
+	authorId: string;
+	classId: string;
+}
+
+export interface ResolvedTask extends Omit<Task, "authorId" | "dueDate"> {
+	dueDate?: Date;
+	author: User;
+}
+
 export async function createClass(name: string, homeroomTeacher: User) {
 	const id = snowflake();
 	const newClass: Class = {
@@ -48,6 +62,48 @@ export async function resolveClass(data: Class) {
 		homeroomTeacher,
 	};
 	return resolvedClass;
+}
+
+// TODO(@szrraa): make the `createTask` function
+
+export async function resolveTask(taskId: string) {
+	const { value: rawTask } = await kv.get<Task>(["tasks", taskId]);
+
+	if (rawTask) {
+		const data: ResolvedTask = {
+			id: rawTask.id,
+			title: rawTask.title,
+			description: rawTask.description,
+			dueDate: rawTask.dueDate ? new Date(rawTask.dueDate) : undefined,
+			author: await retrieveUser(rawTask.authorId),
+			classId: rawTask.classId,
+		};
+		return data;
+	} else {
+		throw new Error("Unknown Task");
+	}
+}
+
+export async function retrieveTasks(
+	classId: string,
+	fullData: true,
+): Promise<ResolvedTask[]>;
+export async function retrieveTasks(
+	classId: string,
+	fullData?: boolean,
+): Promise<string[]>;
+export async function retrieveTasks(classId: string, fullData?: boolean) {
+	const { value: taskIds } = await kv.get<string[]>([
+		"class",
+		classId,
+		"tasks",
+	]);
+
+	if (fullData) {
+		return await Promise.all(taskIds!.map((ctx) => resolveTask(ctx)));
+	} else {
+		return taskIds;
+	}
 }
 
 export async function retrieveClass(classId: string) {
