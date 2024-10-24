@@ -11,6 +11,7 @@ export const config: RouteConfig = {
 
 export const handler = define.handlers({
 	async GET(ctx) {
+		ctx.state.title = "Signup";
 		const user = await resolveSession(ctx);
 
 		if (user) {

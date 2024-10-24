@@ -17,6 +17,7 @@ export const handler = define.handlers({
 			const fetchedClass = await retrieveClass(classId);
 
 			if (fetchedClass) {
+				ctx.state.title = `Tugas · Kelas ${fetchedClass.name}`;
 				return page({ fetchedClass });
 			} else {
 				throw notFound;
