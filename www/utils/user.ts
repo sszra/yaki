@@ -142,7 +142,8 @@ export async function retrieveConnectedUser(
 	]);
 
 	if (userId) {
-		const { value: user } = await kv.get<User>(["users", "byId", userId]);
-		return user;
+		return await retrieveUser(userId);
+	} else {
+		throw new Error("No account connected");
 	}
 }
