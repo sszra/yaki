@@ -115,7 +115,18 @@ export async function retrieveUser(userId: string) {
 	}
 }
 
-export async function searchUser(username: string) {
+export async function searchUser(
+	username: string,
+	fullData: true,
+): Promise<User>;
+export async function searchUser(
+	username: string,
+	fullData?: boolean,
+): Promise<string | User>;
+export async function searchUser(
+	username: string,
+	fullData?: boolean,
+): Promise<string | User> {
 	const { value: userId } = await kv.get<string>([
 		"users",
 		"byUsername",
@@ -123,9 +134,13 @@ export async function searchUser(username: string) {
 	]);
 
 	if (userId) {
-		return await retrieveUser(userId);
+		if (fullData) {
+			return await retrieveUser(userId);
+		} else {
+			return userId;
+		}
 	} else {
-		throw new Error("This user doesn't exist");
+		throw new Error("Unknown User.");
 	}
 }
 
