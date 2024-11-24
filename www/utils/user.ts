@@ -4,7 +4,8 @@ import { snowflake } from "./snowflake.ts";
 import { uploadAvatar } from "./imagekit.ts";
 import { hash } from "@felix/bcrypt";
 
-const FORMATTING_PATTERN = {
+export const FORMATTING_PATTERN = {
+	FullName: /^[A-Z]([a-z]+|\.)(\s[A-Z]([a-z]+|\.))*$/,
 	Username: /^[a-z0-9]{3,20}$/,
 };
 
@@ -15,6 +16,7 @@ export enum UserFlags {
 export interface User {
 	id: string;
 	username: string;
+	fullName: string;
 	flags?: UserFlags;
 	nickname?: string;
 	avatarUrl?: string;
@@ -25,64 +27,69 @@ export interface UserConnection {
 }
 
 interface CreateUserOptions extends Omit<User, "id" | "avatarUrl"> {
-	password: string;
-	avatar?: Blob;
+	password: string | null;
+	avatar: Blob | null;
 }
 
 const kv = await Deno.openKv();
 
 export async function createUser(
-	options: CreateUserOptions,
+	{ avatar, username, fullName, password, flags }: CreateUserOptions,
 ) {
-	if (options.username.match(FORMATTING_PATTERN.Username)) {
+	if (!username.match(FORMATTING_PATTERN.Username)) {
+		throw new Error("Username hanya boleh mengandung huruf kecil.");
+	} else if (!fullName.match(FORMATTING_PATTERN.FullName)) {
+		throw new Error(
+			'Format nama salah. (contoh yang benar: "Khinara Aleydra" atau "Khinara A.")',
+		);
+	} else if (password && password.length < 8) {
+		throw new Error("Panjang karakter sandi minimal 8 karakter.");
+	} else {
 		const usernameAvailability = await kv.atomic().check({
-			key: ["users", "byUsername", options.username],
+			key: ["users", "byUsername", username],
 			versionstamp: null,
 		}).commit();
 
-		if (options.password.length < 8) {
-			throw new Error("Panjang karakter sandi minimal 8 karakter");
-		}
-
 		if (!usernameAvailability.ok) {
-			throw new Error("Username ini tidak tersedia");
+			throw new Error("Username ini telah digunakan.");
 		} else {
 			const id = snowflake();
-			const newUser: User = {
-				id,
-				username: options.username,
-				flags: options.flags,
-				connections: options.connections,
-			};
+			const newUser: User = { id, username, fullName, flags };
 
-			if (options.avatar) {
-				const avatarExtension = extension(options.avatar.type)!;
+			if (avatar) {
+				const avatarExtension = extension(avatar.type)!;
 				const supportedExtensions = ["jpeg", "png"];
 
 				if (supportedExtensions.includes(avatarExtension)) {
 					newUser.avatarUrl = await uploadAvatar(
 						id,
-						await options.avatar.bytes(),
+						await avatar.bytes(),
 						avatarExtension,
 					);
 				} else {
-					throw new Error("Unsupported avatar format");
+					throw new Error(
+						"Avatar hanya mendukung format jpg dan png.",
+					);
 				}
 			}
 
 			const atomic = kv.atomic().set(["users", "byId", id], newUser).set([
 				"users",
 				"byUsername",
-				options.username,
+				username,
 			], id).set(["users", "byId", id, "classes"], []).set([
 				"users",
 				"byId",
 				id,
 				"friends",
-			], []).set(
-				["users", "byId", id, "password"],
-				await hash(options.password),
-			);
+			], []);
+
+			if (password) {
+				atomic.set(
+					["users", "byId", id, "password"],
+					await hash(password),
+				);
+			}
 
 			if (newUser.connections?.discord) {
 				atomic.set([
@@ -100,9 +107,17 @@ export async function createUser(
 				throw new Error("Gagal membuat akun");
 			}
 		}
-	} else {
-		throw new Error("Username hanya bisa mengandung huruf kecil dan angka");
 	}
+}
+
+export async function retrievePassword(userId: string) {
+	const { value: password } = await kv.get<string>([
+		"users",
+		"byId",
+		userId,
+		"password",
+	]);
+	return password;
 }
 
 export async function retrieveUser(userId: string) {
@@ -121,8 +136,8 @@ export async function searchUser(
 ): Promise<User>;
 export async function searchUser(
 	username: string,
-	fullData?: boolean,
-): Promise<string | User>;
+	fullData?: false,
+): Promise<string>;
 export async function searchUser(
 	username: string,
 	fullData?: boolean,
